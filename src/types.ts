@@ -30,9 +30,9 @@ export interface CheckIn {
   updatedAt: string;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
+export interface SupabaseSession {
+  access_token: string;
+  refresh_token: string;
 }
 
 export interface LoginRequest {
@@ -47,13 +47,15 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
+  message: string;
   user: User;
-  tokens: AuthTokens;
+  session: SupabaseSession;
 }
 
 export interface RegisterResponse {
   message: string;
   user: User;
+  session: SupabaseSession;
 }
 
 export class ApiError extends Error {

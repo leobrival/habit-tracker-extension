@@ -1,25 +1,25 @@
 import { LocalStorage } from "@raycast/api";
-import { ApiError, AuthResponse, AuthTokens, LoginRequest, RegisterRequest, RegisterResponse, User } from "./types";
+import { ApiError, AuthResponse, LoginRequest, RegisterRequest, RegisterResponse, SupabaseSession, User } from "./types";
 
 const API_BASE_URL = "http://localhost:3333/api";
-const TOKEN_KEY = "habit-tracker-tokens";
+const SESSION_KEY = "habit-tracker-session";
 const USER_KEY = "habit-tracker-user";
 
 class AuthService {
-  private tokens: AuthTokens | null = null;
+  private session: SupabaseSession | null = null;
   private currentUser: User | null = null;
 
   async initialize() {
     try {
-      const storedTokens = await LocalStorage.getItem<string>(TOKEN_KEY);
+      const storedSession = await LocalStorage.getItem<string>(SESSION_KEY);
       const storedUser = await LocalStorage.getItem<string>(USER_KEY);
 
-      if (storedTokens && storedUser) {
-        this.tokens = JSON.parse(storedTokens);
+      if (storedSession && storedUser) {
+        this.session = JSON.parse(storedSession);
         this.currentUser = JSON.parse(storedUser);
 
-        // Verify token is still valid
-        const isValid = await this.verifyToken();
+        // Verify session is still valid
+        const isValid = await this.verifySession();
         if (!isValid) {
           await this.logout();
         }
@@ -38,16 +38,17 @@ class AuthService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
+        credentials: 'include', // Important: Include cookies for session management
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as any;
+        const errorData = await response.json() as any;
         throw new ApiError(errorData.message || "Login failed", response.status);
       }
 
-      const authData = (await response.json()) as AuthResponse;
+      const authData = await response.json() as AuthResponse;
 
-      await this.setAuthData(authData.tokens, authData.user);
+      await this.setAuthData(authData.session, authData.user);
 
       return authData;
     } catch (error) {
@@ -66,22 +67,20 @@ class AuthService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(userData),
+        credentials: 'include', // Important: Include cookies for session management
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as any;
+        const errorData = await response.json() as any;
         throw new ApiError(errorData.message || "Registration failed", response.status);
       }
 
-      const registerData = (await response.json()) as RegisterResponse;
+      const registerData = await response.json() as RegisterResponse;
 
-      // After successful registration, automatically login
-      const loginResponse = await this.login({
-        email: userData.email,
-        password: userData.password,
-      });
+      // Store session and user data
+      await this.setAuthData(registerData.session, registerData.user);
 
-      return loginResponse.user;
+      return registerData.user;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -92,13 +91,13 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      if (this.tokens?.accessToken) {
+      if (this.session) {
         await fetch(`${API_BASE_URL}/auth/logout`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${this.tokens.accessToken}`,
             "Content-Type": "application/json",
           },
+          credentials: 'include', // Important: Include cookies
         });
       }
     } catch (error) {
@@ -108,75 +107,38 @@ class AuthService {
     }
   }
 
-  async refreshToken(): Promise<boolean> {
+  async verifySession(): Promise<boolean> {
     try {
-      if (!this.tokens?.refreshToken) {
-        return false;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.tokens.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken: this.tokens.refreshToken }),
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const authData = (await response.json()) as AuthResponse;
-      await this.setAuthData(authData.tokens, authData.user);
-
-      return true;
-    } catch (error) {
-      console.error("Failed to refresh token:", error);
-      return false;
-    }
-  }
-
-  async verifyToken(): Promise<boolean> {
-    try {
-      if (!this.tokens?.accessToken) {
+      if (!this.session) {
         return false;
       }
 
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${this.tokens.accessToken}`,
-        },
+        credentials: 'include', // Important: Include cookies
       });
 
       if (response.ok) {
-        const userData = (await response.json()) as User;
-        this.currentUser = userData;
-        await LocalStorage.setItem(USER_KEY, JSON.stringify(userData));
+        const data = await response.json() as { user: User };
+        this.currentUser = data.user;
+        await LocalStorage.setItem(USER_KEY, JSON.stringify(data.user));
         return true;
-      }
-
-      // Try to refresh token if verification failed
-      if (response.status === 401 && this.tokens.refreshToken) {
-        return await this.refreshToken();
       }
 
       return false;
     } catch (error) {
-      console.error("Failed to verify token:", error);
+      console.error("Failed to verify session:", error);
       return false;
     }
   }
 
   async apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    if (!this.tokens?.accessToken) {
+    if (!this.session) {
       throw new ApiError("Not authenticated", 401);
     }
 
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = {
-      Authorization: `Bearer ${this.tokens.accessToken}`,
       "Content-Type": "application/json",
       ...options.headers,
     };
@@ -185,40 +147,21 @@ class AuthService {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include', // Important: Include cookies for session
       });
 
       if (response.status === 401) {
-        // Try to refresh token
-        const refreshed = await this.refreshToken();
-        if (refreshed) {
-          // Retry with new token
-          const retryHeaders = {
-            ...headers,
-            Authorization: `Bearer ${this.tokens!.accessToken}`,
-          };
-          const retryResponse = await fetch(url, {
-            ...options,
-            headers: retryHeaders,
-          });
-
-          if (!retryResponse.ok) {
-            const errorData = (await retryResponse.json()) as any;
-            throw new ApiError(errorData.message || "API request failed", retryResponse.status);
-          }
-
-          return (await retryResponse.json()) as T;
-        } else {
-          await this.logout();
-          throw new ApiError("Authentication expired", 401);
-        }
+        // Session expired, logout
+        await this.logout();
+        throw new ApiError("Authentication expired", 401);
       }
 
       if (!response.ok) {
-        const errorData = (await response.json()) as any;
+        const errorData = await response.json() as any;
         throw new ApiError(errorData.message || "API request failed", response.status);
       }
 
-      return (await response.json()) as T;
+      return await response.json() as T;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -227,32 +170,32 @@ class AuthService {
     }
   }
 
-  private async setAuthData(tokens: AuthTokens, user: User): Promise<void> {
-    this.tokens = tokens;
+  private async setAuthData(session: SupabaseSession, user: User): Promise<void> {
+    this.session = session;
     this.currentUser = user;
 
-    await LocalStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+    await LocalStorage.setItem(SESSION_KEY, JSON.stringify(session));
     await LocalStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
   private async clearAuthData(): Promise<void> {
-    this.tokens = null;
+    this.session = null;
     this.currentUser = null;
 
-    await LocalStorage.removeItem(TOKEN_KEY);
+    await LocalStorage.removeItem(SESSION_KEY);
     await LocalStorage.removeItem(USER_KEY);
   }
 
   isAuthenticated(): boolean {
-    return this.tokens !== null && this.currentUser !== null;
+    return this.session !== null && this.currentUser !== null;
   }
 
   getCurrentUser(): User | null {
     return this.currentUser;
   }
 
-  getAccessToken(): string | null {
-    return this.tokens?.accessToken || null;
+  getSession(): SupabaseSession | null {
+    return this.session;
   }
 }
 
