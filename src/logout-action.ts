@@ -1,7 +1,7 @@
-import { showToast, Toast } from "@raycast/api";
+import { closeMainWindow, showToast, Toast } from "@raycast/api";
 import { authService } from "./auth-service";
 
-export default async function Logout() {
+export async function handleLogout() {
   try {
     await authService.initialize();
 
@@ -12,6 +12,9 @@ export default async function Logout() {
 
     await authService.logout();
     showToast(Toast.Style.Success, "Logout successful!");
+
+    // Close the main window to refresh the state
+    await closeMainWindow();
   } catch (error) {
     showToast(Toast.Style.Failure, "Logout failed", "An error occurred during logout");
   }

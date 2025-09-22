@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "habit-tracker",
-  "title": "Demo",
-  "description": "",
+  "title": "Habit Tracker",
+  "description": "Track your habits and stay productive with Habit Tracker.",
   "icon": "extension-icon.png",
   "author": "leobrival",
   "platforms": [
@@ -10,7 +10,8 @@
     "Windows"
   ],
   "categories": [
-    "Productivity"
+    "Productivity",
+    "Data"
   ],
   "license": "MIT",
   "commands": [
@@ -19,12 +20,6 @@
       "title": "Authentication",
       "description": "Login or Sign Up to your Habit Tracker account",
       "mode": "view"
-    },
-    {
-      "name": "logout",
-      "title": "Logout",
-      "description": "Logout from your Habit Tracker account",
-      "mode": "no-view"
     },
     {
       "name": "dashboard",

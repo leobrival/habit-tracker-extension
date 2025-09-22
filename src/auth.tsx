@@ -1,6 +1,7 @@
 import { Action, ActionPanel, Form, showToast, Toast, useNavigation } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { authService } from "./auth-service";
+import { handleLogout } from "./logout-action";
 import { ApiError } from "./types";
 
 interface LoginFormData {
@@ -114,6 +115,15 @@ function LoginView({ isLoading, onSubmit, onSwitchToSignUp }: LoginViewProps) {
         <ActionPanel>
           <Action.SubmitForm title="Login" onSubmit={onSubmit} />
           <Action title="Switch to Sign up" onAction={onSwitchToSignUp} shortcut={{ modifiers: ["cmd"], key: "n" }} />
+          <ActionPanel.Section title="Account">
+            <Action
+              title="Logout"
+              onAction={handleLogout}
+              icon="🚪"
+              style={Action.Style.Destructive}
+              shortcut={{ modifiers: ["cmd"], key: "q" }}
+            />
+          </ActionPanel.Section>
         </ActionPanel>
       }
     >
@@ -147,6 +157,15 @@ function SignUpView({ isLoading, onSubmit, onSwitchToLogin }: SignUpViewProps) {
         <ActionPanel>
           <Action.SubmitForm title="Create Account" onSubmit={onSubmit} />
           <Action title="Switch to Login" onAction={onSwitchToLogin} shortcut={{ modifiers: ["cmd"], key: "l" }} />
+          <ActionPanel.Section title="Account">
+            <Action
+              title="Logout"
+              onAction={handleLogout}
+              icon="🚪"
+              style={Action.Style.Destructive}
+              shortcut={{ modifiers: ["cmd"], key: "q" }}
+            />
+          </ActionPanel.Section>
         </ActionPanel>
       }
     >

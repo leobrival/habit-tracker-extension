@@ -2,6 +2,7 @@ import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from
 import { useEffect, useState } from "react";
 import Auth from "./auth";
 import { authService } from "./auth-service";
+import { handleLogout } from "./logout-action";
 import { ApiError, Board, User } from "./types";
 
 export default function Dashboard() {
@@ -102,6 +103,15 @@ export default function Dashboard() {
                   target={<CreateBoardForm onSubmit={createBoard} />}
                   icon={Icon.Plus}
                 />
+                <ActionPanel.Section title="Account">
+                  <Action
+                    title="Logout"
+                    onAction={handleLogout}
+                    icon={Icon.Logout}
+                    style={Action.Style.Destructive}
+                    shortcut={{ modifiers: ["cmd"], key: "q" }}
+                  />
+                </ActionPanel.Section>
               </ActionPanel>
             }
           />
@@ -121,6 +131,15 @@ export default function Dashboard() {
                     target={<CreateBoardForm onSubmit={createBoard} />}
                     icon={Icon.Plus}
                   />
+                  <ActionPanel.Section title="Account">
+                    <Action
+                      title="Logout"
+                      onAction={handleLogout}
+                      icon={Icon.Logout}
+                      style={Action.Style.Destructive}
+                      shortcut={{ modifiers: ["cmd"], key: "q" }}
+                    />
+                  </ActionPanel.Section>
                 </ActionPanel>
               }
             />
@@ -224,7 +243,7 @@ function BoardDetails({ board }: BoardDetailsProps) {
             description="Start tracking your progress"
             actions={
               <ActionPanel>
-                <Action title="Add Check-in" onAction={addCheckIn} icon={Icon.Plus} />
+                <Action title="Add Check-In" onAction={addCheckIn} icon={Icon.Plus} />
               </ActionPanel>
             }
           />
@@ -238,7 +257,7 @@ function BoardDetails({ board }: BoardDetailsProps) {
               accessories={[{ text: checkIn.completed ? "Completed" : "Incomplete" }]}
               actions={
                 <ActionPanel>
-                  <Action title="Add Check-in" onAction={addCheckIn} icon={Icon.Plus} />
+                  <Action title="Add Check-In" onAction={addCheckIn} icon={Icon.Plus} />
                 </ActionPanel>
               }
             />
