@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Raycast Extension Manifest",
+  "type": "object",
+  "required": ["name", "title", "description", "author", "commands"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Extension identifier in kebab-case"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 50,
+      "description": "Display name for the extension"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Brief description for Raycast Store"
+    },
+    "author": {
+      "type": "string",
+      "description": "Developer identifier"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["Productivity", "Data", "Developer Tools", "Media", "Communication"]
+      },
+      "minItems": 1
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Command"
+      },
+      "minItems": 1
+    },
+    "preferences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Preference"
+      }
+    },
+    "icon": {
+      "type": "string",
+      "pattern": "\\.(png)$",
+      "description": "Path to extension icon"
+    }
+  },
+  "definitions": {
+    "Command": {
+      "type": "object",
+      "required": ["name", "title", "description", "mode"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["view", "no-view"]
+        },
+        "icon": {
+          "type": "string",
+          "pattern": "\\.(png)$"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Preference": {
+      "type": "object",
+      "required": ["name", "title", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["textfield", "password", "checkbox", "dropdown"]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "oneOf": [{ "type": "string" }, { "type": "boolean" }]
+        },
+        "placeholder": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
