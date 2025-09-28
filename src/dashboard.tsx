@@ -1,38 +1,68 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast, useNavigation } from "@raycast/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Auth from "./auth";
 import { authService } from "./auth-service";
 import { handleLogout } from "./logout-action";
-import { ApiError, Board, User } from "./types";
+import { ApiError, Board, CheckIn, User } from "./types";
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { push } = useNavigation();
 
-  useEffect(() => {
-    initialize();
-  }, []);
-
-  const initialize = async () => {
+  const initialize = useCallback(async () => {
     try {
+      console.log("Dashboard: Starting initialization...");
       await authService.initialize();
 
-      if (!authService.isAuthenticated()) {
+      // Always try to verify session with API to detect new logins
+      console.log("Dashboard: Verifying session...");
+      const isValid = await authService.verifySession();
+      console.log("Dashboard: Session valid?", isValid);
+      console.log("Dashboard: Is authenticated?", authService.isAuthenticated());
+
+      if (!isValid || !authService.isAuthenticated()) {
+        console.log("Dashboard: Not authenticated, redirecting to Auth");
         showToast(Toast.Style.Failure, "Please login first");
+        push(<Auth />);
         return;
       }
 
       const currentUser = authService.getCurrentUser();
+      console.log("Dashboard: Current user:", currentUser);
       setUser(currentUser);
 
+      console.log("Dashboard: Loading boards...");
       await loadBoards();
     } catch (error) {
+      console.error("Dashboard: Error during initialization:", error);
       showToast(Toast.Style.Failure, "Failed to load dashboard");
     } finally {
       setIsLoading(false);
     }
+  }, [push]);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize, refreshKey]);
+
+  // Refresh when navigation happens (e.g., coming back from Auth)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("Dashboard: Window focused, checking auth state...");
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  // Function to refresh dashboard data
+  const refreshDashboard = async () => {
+    setIsLoading(true);
+    await initialize();
   };
 
   const loadBoards = async () => {
@@ -57,7 +87,7 @@ export default function Dashboard() {
 
       setBoards((prev) => [...prev, newBoard]);
       showToast(Toast.Style.Success, "Board created successfully!");
-    } catch (error) {
+    } catch {
       showToast(Toast.Style.Failure, "Failed to create board");
     }
   };
@@ -103,6 +133,12 @@ export default function Dashboard() {
                   target={<CreateBoardForm onSubmit={createBoard} />}
                   icon={Icon.Plus}
                 />
+                <Action
+                  title="Refresh"
+                  onAction={refreshDashboard}
+                  icon={Icon.ArrowClockwise}
+                  shortcut={{ modifiers: ["cmd"], key: "r" }}
+                />
                 <ActionPanel.Section title="Account">
                   <Action
                     title="Logout"
@@ -130,6 +166,12 @@ export default function Dashboard() {
                     title="Create Board"
                     target={<CreateBoardForm onSubmit={createBoard} />}
                     icon={Icon.Plus}
+                  />
+                  <Action
+                    title="Refresh"
+                    onAction={refreshDashboard}
+                    icon={Icon.ArrowClockwise}
+                    shortcut={{ modifiers: ["cmd"], key: "r" }}
                   />
                   <ActionPanel.Section title="Account">
                     <Action
@@ -169,7 +211,7 @@ function CreateBoardForm({ onSubmit }: CreateBoardFormProps) {
     try {
       await onSubmit(values.name.trim(), values.description.trim());
       pop();
-    } catch (error) {
+    } catch {
       // Error handled in parent
     } finally {
       setIsLoading(false);
@@ -197,7 +239,7 @@ interface BoardDetailsProps {
 }
 
 function BoardDetails({ board }: BoardDetailsProps) {
-  const [checkIns, setCheckIns] = useState<any[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -206,9 +248,9 @@ function BoardDetails({ board }: BoardDetailsProps) {
 
   const loadCheckIns = async () => {
     try {
-      const checkInsData = await authService.apiRequest<any[]>(`/check-ins?boardId=${board.id}`);
+      const checkInsData = await authService.apiRequest<CheckIn[]>(`/check-ins?boardId=${board.id}`);
       setCheckIns(checkInsData);
-    } catch (error) {
+    } catch {
       showToast(Toast.Style.Failure, "Failed to load check-ins");
     } finally {
       setIsLoading(false);
@@ -217,7 +259,7 @@ function BoardDetails({ board }: BoardDetailsProps) {
 
   const addCheckIn = async () => {
     try {
-      const newCheckIn = await authService.apiRequest<any>("/check-ins", {
+      const newCheckIn = await authService.apiRequest<CheckIn>("/check-ins", {
         method: "POST",
         body: JSON.stringify({
           boardId: board.id,
@@ -229,7 +271,7 @@ function BoardDetails({ board }: BoardDetailsProps) {
 
       setCheckIns((prev) => [...prev, newCheckIn]);
       showToast(Toast.Style.Success, "Check-in added!");
-    } catch (error) {
+    } catch {
       showToast(Toast.Style.Failure, "Failed to add check-in");
     }
   };

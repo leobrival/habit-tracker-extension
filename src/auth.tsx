@@ -40,13 +40,15 @@ export default function Auth() {
         password: formData.password,
       });
 
-      showToast(Toast.Style.Success, "Login successful!");
+      showToast(Toast.Style.Success, "Login successful! You can now use the Dashboard command.");
       pop();
     } catch (error) {
+      console.error("Login error:", error);
       if (error instanceof ApiError) {
         showToast(Toast.Style.Failure, "Login failed", error.message);
       } else {
-        showToast(Toast.Style.Failure, "Login failed", "An unexpected error occurred");
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showToast(Toast.Style.Failure, "Login failed", `Unexpected error: ${errorMessage}`);
       }
     } finally {
       setIsLoading(false);
@@ -77,13 +79,15 @@ export default function Auth() {
         password: formData.password,
       });
 
-      showToast(Toast.Style.Success, "Registration successful!");
+      showToast(Toast.Style.Success, "Registration successful! You can now use the Dashboard command.");
       pop();
     } catch (error) {
+      console.error("Registration error:", error);
       if (error instanceof ApiError) {
         showToast(Toast.Style.Failure, "Registration failed", error.message);
       } else {
-        showToast(Toast.Style.Failure, "Registration failed", "An unexpected error occurred");
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showToast(Toast.Style.Failure, "Registration failed", `Unexpected error: ${errorMessage}`);
       }
     } finally {
       setIsLoading(false);
@@ -119,7 +123,6 @@ function LoginView({ isLoading, onSubmit, onSwitchToSignUp }: LoginViewProps) {
             <Action
               title="Logout"
               onAction={handleLogout}
-              icon="🚪"
               style={Action.Style.Destructive}
               shortcut={{ modifiers: ["cmd"], key: "q" }}
             />
@@ -161,7 +164,6 @@ function SignUpView({ isLoading, onSubmit, onSwitchToLogin }: SignUpViewProps) {
             <Action
               title="Logout"
               onAction={handleLogout}
-              icon="🚪"
               style={Action.Style.Destructive}
               shortcut={{ modifiers: ["cmd"], key: "q" }}
             />
@@ -187,8 +189,8 @@ function SignUpView({ isLoading, onSubmit, onSwitchToLogin }: SignUpViewProps) {
       <Form.PasswordField
         id="password"
         title="Password"
-        placeholder="Choose a strong password (min 6 characters)"
-        info="Must be at least 6 characters long"
+        placeholder="Choose a strong password (min 12 characters)"
+        info="Must be at least 12 characters long"
       />
       <Form.PasswordField id="confirmPassword" title="Confirm Password" placeholder="Confirm your password" />
     </Form>

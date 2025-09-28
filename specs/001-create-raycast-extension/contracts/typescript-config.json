@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TypeScript Configuration for Raycast Extensions",
+  "type": "object",
+  "required": ["compilerOptions"],
+  "properties": {
+    "compilerOptions": {
+      "type": "object",
+      "required": ["target", "module", "strict", "esModuleInterop"],
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["ES2020", "ES2021", "ES2022"],
+          "description": "ECMAScript target version"
+        },
+        "module": {
+          "type": "string",
+          "enum": ["ESNext", "CommonJS"],
+          "description": "Module system"
+        },
+        "moduleResolution": {
+          "type": "string",
+          "enum": ["node", "bundler"],
+          "description": "Module resolution strategy"
+        },
+        "strict": {
+          "type": "boolean",
+          "const": true,
+          "description": "Enable strict type checking"
+        },
+        "esModuleInterop": {
+          "type": "boolean",
+          "description": "Enable ES module interoperability"
+        },
+        "allowSyntheticDefaultImports": {
+          "type": "boolean",
+          "description": "Allow synthetic default imports"
+        },
+        "jsx": {
+          "type": "string",
+          "enum": ["react-jsx", "react"],
+          "description": "JSX compilation mode"
+        },
+        "skipLibCheck": {
+          "type": "boolean",
+          "description": "Skip type checking of declaration files"
+        }
+      }
+    },
+    "include": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Files to include in compilation"
+    },
+    "exclude": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Files to exclude from compilation"
+    }
+  }
+}

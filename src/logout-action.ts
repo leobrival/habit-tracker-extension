@@ -15,7 +15,7 @@ export async function handleLogout() {
 
     // Close the main window to refresh the state
     await closeMainWindow();
-  } catch (error) {
+  } catch {
     showToast(Toast.Style.Failure, "Logout failed", "An error occurred during logout");
   }
 }
